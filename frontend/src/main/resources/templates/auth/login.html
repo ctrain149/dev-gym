@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+  tmvc-07: Login page for Spring Security form login.
+  Spring Security handles POST /login automatically — you only need this view.
+
+  Key points:
+    - action="/login" (no th:action — Spring Security intercepts it directly)
+    - CSRF token is automatically injected by Thymeleaf when using Spring Security
+    - ${param.error} is set by Spring Security on failed login
+    - ${param.logout} is set by Spring Security after logout
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Login - DevFeed</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<div th:replace="~{layout/base :: nav}"></div>
+
+<main class="container">
+    <div class="auth-box">
+        <h1>Sign In</h1>
+
+        <!-- Spring Security sets param.error on failed login -->
+        <div th:if="${param.error}" class="alert alert-error">
+            Invalid username or password.
+        </div>
+
+        <!-- Spring Security sets param.logout after logout -->
+        <div th:if="${param.logout}" class="alert alert-success">
+            You have been logged out.
+        </div>
+
+        <!--
+          action="/login" — Spring Security's built-in login processing URL.
+          Thymeleaf auto-injects the _csrf hidden input.
+        -->
+        <form action="/login" method="post" class="form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control" required autofocus/>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" required/>
+            </div>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>

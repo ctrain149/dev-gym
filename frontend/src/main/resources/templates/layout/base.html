@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+  tmvc-03: Thymeleaf Layout Fragment (manual fragment approach).
+  This is the base shell. All pages include it via th:replace or th:insert.
+
+  TODO (tmvc-07): Add sec:authorize attributes to nav links:
+    sec:authorize="isAuthenticated()"   → show logout
+    sec:authorize="hasRole('ADMIN')"    → show admin links
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${pageTitle} ?: 'DevStore'">DevStore</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<nav th:fragment="nav">
+    <div class="nav-container">
+        <a th:href="@{/}" class="nav-brand">DevStore</a>
+        <div class="nav-links">
+            <a th:href="@{/products}">Products</a>
+            <!-- TODO (tmvc-07): Show only when authenticated -->
+            <a th:href="@{/products/new}">New Product</a>
+            <a th:href="@{/login}">Login</a>
+            <!-- TODO (tmvc-07): Show only when authenticated -->
+            <form th:action="@{/logout}" method="post" style="display:inline">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash message fragment -->
+<div th:fragment="flash">
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+</div>
+
+</body>
+</html>

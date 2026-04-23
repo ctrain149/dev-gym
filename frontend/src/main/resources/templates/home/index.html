@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+  tmvc-01: Your first Thymeleaf template.
+  Replace the content of <main> with real DevFeed content.
+
+  Key Thymeleaf attributes to know:
+    th:text="${expr}"    → escape and render text
+    th:href="@{/path}"  → context-aware link
+    th:each="item : ${list}" → iteration
+    th:if="${condition}" → conditional render
+    [[${expr}]]          → inline text (no wrapper tag needed)
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home - DevStore</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<!-- Include the nav fragment from layout/base.html -->
+<div th:replace="~{layout/base :: nav}"></div>
+
+<main class="container">
+    <!-- Flash messages -->
+    <div th:replace="~{layout/base :: flash}"></div>
+
+    <h1>Welcome to <span th:text="${appName} ?: 'DevStore'">DevStore</span></h1>
+    <p>Your developer practice product store.</p>
+
+    <!-- TODO (tmvc-01): Add featuredProducts list from the controller model -->
+    <!--
+    <ul>
+        <li th:each="product : ${featuredProducts}" th:text="${product}">Product name</li>
+    </ul>
+    <p th:if="${#lists.isEmpty(featuredProducts)}">No featured products yet.</p>
+    -->
+
+    <a th:href="@{/products}" class="btn">Browse Products</a>
+</main>
+
+</body>
+</html>

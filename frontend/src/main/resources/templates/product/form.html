@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+  tmvc-02: Product create/edit form.
+  Demonstrates: th:object, th:field, th:errors, th:action, th:method.
+
+  Key points:
+    th:object="${product}"   → binds the form to the Product object in the model
+    th:field="*{name}"       → binds to product.name, sets id, name, value attributes
+    th:errors="*{name}"      → displays FieldError for product.name if present
+
+  The same form.html is reused for both create and edit:
+    - Create: product.id == null → POST /products/new
+    - Edit:   product.id != null → POST /products/{id}/edit
+
+  TODO: Implement controller methods showCreateForm, create, showEditForm, update.
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${product.id != null} ? 'Edit Product' : 'New Product'">Product Form</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<div th:replace="~{layout/base :: nav}"></div>
+
+<main class="container">
+    <h1 th:text="${product.id != null} ? 'Edit Product' : 'New Product'">Product Form</h1>
+
+    <!--
+      th:action uses the conditional operator to point to the right endpoint.
+      th:object binds the entire form to ${product}.
+    -->
+    <form th:action="${product.id != null}
+                      ? @{/products/{id}/edit(id=${product.id})}
+                      : @{/products/new}"
+          th:object="${product}"
+          method="post"
+          class="form">
+
+        <div class="form-group">
+            <label for="name">Name</label>
+            <!-- th:field sets id="name" name="name" and value from model -->
+            <input type="text" th:field="*{name}" class="form-control"/>
+            <!-- th:errors shows the validation error message if present -->
+            <span th:errors="*{name}" class="error"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea th:field="*{description}" class="form-control" rows="4"></textarea>
+            <span th:errors="*{description}" class="error"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price</label>
+            <input type="number" th:field="*{price}" step="0.01" class="form-control"/>
+            <span th:errors="*{price}" class="error"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="stockQuantity">Stock Quantity</label>
+            <input type="number" th:field="*{stockQuantity}" class="form-control"/>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${product.id != null} ? 'Update' : 'Create'">Save</span>
+            </button>
+            <a th:href="@{/products}" class="btn">Cancel</a>
+        </div>
+    </form>
+</main>
+
+</body>
+</html>
