@@ -30,18 +30,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                // TODO (tmvc-07): Replace with proper role-based rules
-                .requestMatchers("/h2-console/**", "/css/**", "/js/**").permitAll()
-                .anyRequest().permitAll() // CHANGE to .authenticated() after tmvc-07
+                .requestMatchers("/h2-console/**", "/css/**", "/js/**", "/login", "/", "/about").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/products", "/products/{id}").permitAll()
+                .requestMatchers("/products/{id}/delete").hasRole("ADMIN")
+                .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                // TODO (tmvc-07): Set .loginPage("/login") once you build the login view
+                .loginPage("/login")
                 .defaultSuccessUrl("/", true)
+                .permitAll()
             )
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
+                .permitAll()
             )
-            .headers(headers -> headers.frameOptions(fo -> fo.disable())); // H2 console
+            .headers(headers -> headers.frameOptions(fo -> fo.disable()));
 
         return http.build();
     }

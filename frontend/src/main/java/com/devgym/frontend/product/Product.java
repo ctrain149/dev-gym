@@ -10,12 +10,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * tmvc-04: JPA entity for the Thymeleaf product catalog.
- *
- * TODO: Add @Column annotations with appropriate constraints.
- * TODO: Add @PrePersist to set createdAt automatically.
- */
 @Data
 @NoArgsConstructor
 @Entity
@@ -26,22 +20,26 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO: Add @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     @NotBlank(message = "Name is required")
     private String name;
 
-    // TODO: Add @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    // TODO: Add @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 10, scale = 2)
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be positive")
     private BigDecimal price;
 
-    private int stockQuantity;
+    @Column(nullable = false)
+    private int stockQuantity = 0;
 
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    // TODO: @PrePersist
-    // public void prePersist() { this.createdAt = LocalDateTime.now(); }
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

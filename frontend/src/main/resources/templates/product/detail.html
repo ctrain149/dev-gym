@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${product.name} + ' - DevStore'">Product - DevStore</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<div th:replace="~{layout/base :: nav}"></div>
+
+<main class="container">
+    <div th:replace="~{layout/base :: flash}"></div>
+
+    <div class="detail-header">
+        <h1 th:text="${product.name}">Product Name</h1>
+        <span class="price" th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 'COMMA', 2, 'POINT')}">$0.00</span>
+    </div>
+
+    <p th:text="${product.description}">Description</p>
+    <p>Stock: <strong th:text="${product.stockQuantity}">0</strong></p>
+    <p th:if="${product.createdAt}">
+        Added: <span th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd')}">date</span>
+    </p>
+
+    <div class="action-group">
+        <a th:href="@{/products/{id}/edit(id=${product.id})}" class="btn">Edit</a>
+        <form th:action="@{/products/{id}/delete(id=${product.id})}" method="post" style="display:inline">
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('Delete this product?')">Delete</button>
+        </form>
+        <a th:href="@{/products}" class="btn btn-secondary">Back to Products</a>
+    </div>
+</main>
+
+</body>
+</html>

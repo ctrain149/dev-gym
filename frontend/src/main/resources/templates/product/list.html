@@ -1,14 +1,8 @@
 <!DOCTYPE html>
-<!--
-  tmvc-01: Product listing page.
-  Demonstrates: th:each, th:if, th:href, th:text, pagination links.
-
-  TODO: Implement the controller GET /products to populate ${products}.
--->
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Products - DevFeed</title>
+    <title>Products - DevStore</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
 </head>
 <body>
@@ -19,19 +13,16 @@
     <div th:replace="~{layout/base :: flash}"></div>
 
     <div class="page-header">
-        <h1>Products</h1>
+        <h1>Products <span th:if="${products != null}" th:text="'(' + ${products.size()} + ')'"></span></h1>
         <a th:href="@{/products/new}" class="btn btn-primary">+ New Product</a>
     </div>
 
-    <!-- Search form (tmvc-01) -->
     <form th:action="@{/products}" method="get" class="search-form">
         <input type="text" name="search" th:value="${search}" placeholder="Search products..."/>
         <button type="submit">Search</button>
         <a th:href="@{/products}" th:if="${search != null and !#strings.isEmpty(search)}">Clear</a>
     </form>
 
-    <!-- Product table -->
-    <!-- TODO: Replace placeholder with real ${products} from controller -->
     <table class="table">
         <thead>
             <tr>
@@ -43,30 +34,42 @@
             </tr>
         </thead>
         <tbody>
-            <!-- TODO: Uncomment and implement once controller is done
             <tr th:each="product : ${products}">
                 <td th:text="${product.id}">1</td>
                 <td>
                     <a th:href="@{/products/{id}(id=${product.id})}" th:text="${product.name}">Product Name</a>
                 </td>
-                <td th:text="${#numbers.formatDecimal(product.price, 1, 'COMMA', 2, 'POINT')}">$9.99</td>
+                <td th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 'COMMA', 2, 'POINT')}">$9.99</td>
                 <td th:text="${product.stockQuantity}">0</td>
-                <td>
-                    <a th:href="@{/products/{id}/edit(id=${product.id})}">Edit</a>
+                <td class="action-group">
+                    <a th:href="@{/products/{id}/edit(id=${product.id})}" class="btn">Edit</a>
                     <form th:action="@{/products/{id}/delete(id=${product.id})}" method="post" style="display:inline">
-                        <button type="submit" onclick="return confirm('Delete?')">Delete</button>
+                        <button type="submit" class="btn btn-danger"
+                                onclick="return confirm('Delete this product?')">Delete</button>
                     </form>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(products)}">
-                <td colspan="5">No products found.</td>
-            </tr>
-            -->
-            <tr>
-                <td colspan="5" class="placeholder">Implement GET /products to populate this table.</td>
+            <tr th:if="${products == null or #lists.isEmpty(products)}">
+                <td colspan="5" class="placeholder">No products found.</td>
             </tr>
         </tbody>
     </table>
+
+    <!-- Pagination -->
+    <div class="pagination" th:if="${totalPages > 1}">
+        <a th:href="@{/products(page=${currentPage - 1}, search=${search})}"
+           th:classappend="${currentPage == 0} ? 'disabled'"
+           class="btn">&laquo; Prev</a>
+        <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+            <a th:href="@{/products(page=${i}, search=${search})}"
+               th:text="${i + 1}"
+               th:classappend="${i == currentPage} ? 'active'"
+               class="btn">1</a>
+        </span>
+        <a th:href="@{/products(page=${currentPage + 1}, search=${search})}"
+           th:classappend="${currentPage == totalPages - 1} ? 'disabled'"
+           class="btn">Next &raquo;</a>
+    </div>
 </main>
 
 </body>

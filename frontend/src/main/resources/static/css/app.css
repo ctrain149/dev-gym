@@ -1,5 +1,4 @@
-/* DevFeed Thymeleaf Frontend — starter CSS
-   tmvc-01: Clean up this file and replace with your own styles. */
+/* DevStore — Spring MVC + Thymeleaf practice app */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,6 +31,12 @@ nav { background: #1a1a2e; padding: 0.75rem 1.5rem; }
 .btn:hover { background: #e9ecef; }
 .btn-primary { background: #e94560; border-color: #e94560; color: #fff; }
 .btn-primary:hover { background: #c73652; border-color: #c73652; }
+.btn-secondary { background: #6c757d; border-color: #6c757d; color: #fff; }
+.btn-secondary:hover { background: #5a6268; border-color: #5a6268; }
+.btn-danger { background: #dc3545; border-color: #dc3545; color: #fff; }
+.btn-danger:hover { background: #bb2d3b; border-color: #bb2d3b; }
+.btn.disabled, .btn.active { pointer-events: none; opacity: 0.65; }
+.btn.active { background: #e94560; border-color: #e94560; color: #fff; }
 
 /* Alerts */
 .alert { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
@@ -59,6 +64,17 @@ nav { background: #1a1a2e; padding: 0.75rem 1.5rem; }
 .search-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
 .search-form input { flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; }
 .search-form button { padding: 0.5rem 1rem; background: #e94560; border: none; color: #fff; border-radius: 6px; cursor: pointer; }
+
+/* Detail page */
+.detail-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
+.detail-header h1 { font-size: 1.75rem; }
+.detail-header .price { font-size: 1.5rem; font-weight: 700; color: #e94560; }
+
+/* Inline action group */
+.action-group { display: flex; gap: 0.5rem; align-items: center; }
+
+/* Pagination */
+.pagination { display: flex; gap: 0.35rem; margin-top: 1.5rem; align-items: center; }
 
 /* Auth box */
 .auth-box { max-width: 400px; margin: 3rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
