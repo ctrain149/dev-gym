@@ -3,6 +3,19 @@
 import { useState } from "react";
 import { type Task, type TaskStatus } from "@/lib/tasks";
 import { solutions } from "@/lib/solutions";
+import { hasVerifier } from "@/lib/verifier-ids";
+
+interface CheckResult {
+  name: string;
+  passed: boolean;
+  message: string;
+}
+
+interface VerifyResult {
+  taskId: string;
+  passed: boolean;
+  checks: CheckResult[];
+}
 
 interface TaskDetailProps {
   task: Task;
@@ -22,6 +35,34 @@ export function TaskDetail({
   const [completing, setCompleting] = useState(false);
   const [completeResult, setCompleteResult] = useState<"idle" | "ok" | "error">("idle");
   const [hintsOpen, setHintsOpen] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [verifyVisible, setVerifyVisible] = useState(false);
+
+  const canVerify = hasVerifier(task.id);
+
+  async function handleVerify() {
+    setVerifying(true);
+    setVerifyResult(null);
+    setVerifyVisible(false);
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+      const data: VerifyResult = await res.json();
+      setVerifyResult(data);
+      // stagger the reveal for animation
+      setTimeout(() => setVerifyVisible(true), 50);
+      if (data.passed && !isCompleted) onToggleComplete();
+    } catch {
+      setVerifyResult({ taskId: task.id, passed: false, checks: [{ name: "Connection error", passed: false, message: "Could not reach the verify API" }] });
+      setTimeout(() => setVerifyVisible(true), 50);
+    } finally {
+      setVerifying(false);
+    }
+  }
 
   const hasSolution = !!solutions[task.id];
 
@@ -138,6 +179,109 @@ export function TaskDetail({
           </ul>
         )}
       </section>
+
+      {/* Verify my work */}
+      {canVerify && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4 p-4 bg-zinc-800/60 border border-zinc-700 rounded-lg">
+            <div>
+              <p className="text-sm font-semibold text-zinc-200">Verify my work</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Checks your actual files against the task requirements.
+              </p>
+            </div>
+            <button
+              onClick={handleVerify}
+              disabled={verifying || status === "locked"}
+              className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                status === "locked"
+                  ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                  : verifying
+                    ? "bg-indigo-800 text-indigo-200 cursor-wait"
+                    : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
+            >
+              {verifying ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 border-2 border-indigo-300 border-t-transparent rounded-full animate-spin" />
+                  Checking…
+                </span>
+              ) : "Run checks"}
+            </button>
+          </div>
+
+          {/* Results panel */}
+          {verifyResult && (
+            <div
+              className={`mt-2 rounded-lg border overflow-hidden transition-all duration-300 ${
+                verifyVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+              } ${
+                verifyResult.passed
+                  ? "border-green-700 bg-green-950/40"
+                  : "border-red-800 bg-red-950/30"
+              }`}
+            >
+              {/* Summary bar */}
+              <div className={`flex items-center gap-3 px-4 py-3 ${
+                verifyResult.passed ? "bg-green-900/40" : "bg-red-900/30"
+              }`}>
+                <span className="text-xl">{verifyResult.passed ? "🎉" : "❌"}</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${
+                    verifyResult.passed ? "text-green-300" : "text-red-300"
+                  }`}>
+                    {verifyResult.passed
+                      ? "All checks passed! Task marked complete."
+                      : `${verifyResult.checks.filter((c) => !c.passed).length} of ${verifyResult.checks.length} checks failed`}
+                  </p>
+                </div>
+                {/* mini progress bar */}
+                <div className="w-24 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      verifyResult.passed ? "bg-green-400" : "bg-red-500"
+                    }`}
+                    style={{
+                      width: `${Math.round(
+                        (verifyResult.checks.filter((c) => c.passed).length /
+                          verifyResult.checks.length) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Per-check list */}
+              <ul className="divide-y divide-zinc-800/60">
+                {verifyResult.checks.map((c, i) => (
+                  <li
+                    key={i}
+                    className={`flex items-start gap-3 px-4 py-2.5 transition-all duration-300`}
+                    style={{ transitionDelay: verifyVisible ? `${i * 60}ms` : "0ms" }}
+                  >
+                    <span className="mt-0.5 text-base shrink-0">
+                      {c.passed ? "✅" : "❌"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`text-xs font-medium ${
+                        c.passed ? "text-zinc-300" : "text-red-300"
+                      }`}>
+                        {c.name}
+                      </p>
+                      {!c.passed && (
+                        <p className="text-xs text-zinc-500 mt-0.5 font-mono break-all">
+                          {c.message}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Complete for me */}
       {hasSolution && (
