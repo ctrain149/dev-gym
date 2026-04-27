@@ -17,6 +17,14 @@ export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDeta
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [solving, setSolving] = useState(false);
+  const [confirmSolve, setConfirmSolve] = useState(false);
+  const [solveMessage, setSolveMessage] = useState<string | null>(null);
+
+  const hasSolution = task.category === "simulation";
 
   const runVerification = useCallback(async () => {
     setVerifying(true);
@@ -39,6 +47,56 @@ export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDeta
       setVerifyError(e instanceof Error ? e.message : "Network error");
     } finally {
       setVerifying(false);
+    }
+  }, [task.id]);
+
+  const handleReset = useCallback(async () => {
+    setResetting(true);
+    setResetMessage(null);
+    try {
+      const res = await fetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files: task.filesInvolved }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResetMessage(`Error: ${data.error}`);
+      } else {
+        setResetMessage(data.message);
+        setVerifyResult(null);
+        setVerifyError(null);
+      }
+    } catch (e) {
+      setResetMessage(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setResetting(false);
+      setConfirmReset(false);
+    }
+  }, [task.filesInvolved]);
+
+  const handleSolve = useCallback(async () => {
+    setSolving(true);
+    setSolveMessage(null);
+    try {
+      const res = await fetch("/api/solve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSolveMessage(`Error: ${data.error}`);
+      } else {
+        setSolveMessage(`${data.message} — open the files to see the solution`);
+        setVerifyResult(null);
+        setVerifyError(null);
+      }
+    } catch (e) {
+      setSolveMessage(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setSolving(false);
+      setConfirmSolve(false);
     }
   }, [task.id]);
 
@@ -238,7 +296,85 @@ export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDeta
         >
           Back to Dashboard
         </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          {hasSolution && !confirmSolve && (
+            <button
+              onClick={() => setConfirmSolve(true)}
+              className="px-4 py-2 rounded-lg text-sm text-amber-400 hover:text-amber-300 border border-amber-900/50 hover:border-amber-700/60 transition-all"
+            >
+              Complete for me
+            </button>
+          )}
+          {hasSolution && confirmSolve && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-amber-400">Overwrite files with solution?</span>
+              <button
+                onClick={handleSolve}
+                disabled={solving}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 transition-all"
+              >
+                {solving ? "Writing…" : "Yes"}
+              </button>
+              <button
+                onClick={() => setConfirmSolve(false)}
+                className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-700"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {!confirmReset ? (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="px-4 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-700/60 transition-all"
+            >
+              Reset Files
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-400">Revert all files to starter code?</span>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-all"
+              >
+                {resetting ? "Resetting…" : "Confirm"}
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-700"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {(resetMessage || solveMessage) && (
+        <div className="mt-3 space-y-2">
+          {resetMessage && (
+            <div className={`rounded-lg p-3 text-sm ${
+              resetMessage.startsWith("Error")
+                ? "bg-red-950/30 border border-red-900/40 text-red-300"
+                : "bg-emerald-950/30 border border-emerald-900/40 text-emerald-300"
+            }`}>
+              {resetMessage}
+            </div>
+          )}
+          {solveMessage && (
+            <div className={`rounded-lg p-3 text-sm ${
+              solveMessage.startsWith("Error")
+                ? "bg-red-950/30 border border-red-900/40 text-red-300"
+                : "bg-amber-950/20 border border-amber-900/30 text-amber-200"
+            }`}>
+              {solveMessage}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
