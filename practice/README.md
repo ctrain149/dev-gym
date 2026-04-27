@@ -24,13 +24,19 @@ practice/
 │   ├── auth/         → Password hashing (sec-04)
 │   ├── config/       → Secure config management (sec-05)
 │   └── audit/        → Security audit exercise (sec-06)
-└── testing/
-    ├── junit/        → JUnit 5 fundamentals (tst-01)
-    ├── mockito/      → Mocking (tst-02)
-    ├── tdd/          → TDD red-green-refactor (tst-03)
-    ├── integration/  → Integration tests (tst-04)
-    ├── coverage/     → Test coverage (tst-05)
-    └── docs/         → Test procedures & specs (tst-06)
+├── testing/
+│   ├── junit/        → JUnit 5 fundamentals (tst-01)
+│   ├── mockito/      → Mocking (tst-02)
+│   ├── tdd/          → TDD red-green-refactor (tst-03)
+│   ├── integration/  → Integration tests (tst-04)
+│   ├── coverage/     → Test coverage (tst-05)
+│   └── docs/         → Test procedures & specs (tst-06)
+└── simulation/
+    ├── fundamentals/ → Matrices & plotting (sim-01)
+    ├── signals/      → Signal filtering (sim-02)
+    ├── controls/     → Transfer functions & PID (sim-03, sim-04)
+    ├── simulink/     → Block diagram simulation (sim-05)
+    └── plant/        → Nuclear thermal-hydraulic sim (sim-06)
 ```
 
 ## Compiling
@@ -48,3 +54,20 @@ java -jar junit.jar --class-path practice/testing/junit --scan-class-path
 ```
 
 Or use your IDE's run button.
+
+## Matlab/Simulink Exercises
+
+Run `.m` files in Matlab or [GNU Octave](https://octave.org) (free, open-source):
+
+```bash
+# Install Octave (macOS)
+brew install octave
+
+# Run a script
+octave practice/simulation/fundamentals/sensor_data.m
+
+# Or interactively
+octave --gui
+```
+
+Octave is compatible with Matlab for everything in these exercises (matrices, plotting, signal processing, control systems toolbox via `pkg install -forge control`).

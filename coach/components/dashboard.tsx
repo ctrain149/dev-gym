@@ -9,6 +9,7 @@ import {
   networkingTasks,
   securityTasks,
   testingTasks,
+  simulationTasks,
   phaseTitles,
 } from "@/lib/tasks";
 import { TaskCard } from "./task-card";
@@ -19,6 +20,7 @@ const categories: { key: TaskCategory; label: string; color: string; tasks: Task
   { key: "networking", label: "Networking", color: "text-blue-400 border-blue-500", tasks: networkingTasks },
   { key: "security", label: "Secure Coding", color: "text-red-400 border-red-500", tasks: securityTasks },
   { key: "testing", label: "Testing", color: "text-emerald-400 border-emerald-500", tasks: testingTasks },
+  { key: "simulation", label: "Matlab/Simulink", color: "text-orange-400 border-orange-500", tasks: simulationTasks },
 ];
 
 function loadProgress(): Record<string, TaskStatus> {
@@ -96,7 +98,7 @@ export function Dashboard() {
               <span className="text-zinc-500 font-normal text-lg ml-2">— Westinghouse Prep</span>
             </h1>
             <p className="text-sm text-zinc-500 mt-1">
-              Principal Software Engineer • OOP • Sockets • Security • Testing
+              Principal Software Engineer • OOP • Sockets • Security • Testing • Matlab/Simulink
             </p>
           </div>
           <div className="text-right">

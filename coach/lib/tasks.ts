@@ -1,4 +1,4 @@
-export type TaskCategory = "oop" | "networking" | "security" | "testing";
+export type TaskCategory = "oop" | "networking" | "security" | "testing" | "simulation";
 
 export type TaskStatus = "locked" | "available" | "complete";
 
@@ -792,6 +792,209 @@ export const testingTasks: Task[] = [
 // Phase titles for dashboard
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Matlab/Simulink — Simulation & Controls
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const simulationTasks: Task[] = [
+  {
+    id: "sim-01",
+    title: "Matlab Fundamentals — Matrices & Plotting",
+    phase: 1,
+    difficulty: "beginner",
+    category: "simulation",
+    objectives: [
+      "Create vectors and matrices for sensor data (temperature, pressure, flow rate over time)",
+      "Use element-wise operations to convert units (Celsius to Fahrenheit, PSI to bar)",
+      "Plot sensor readings vs. time with labeled axes, title, legend, and grid",
+      "Generate a subplot with 3 panels showing temperature, pressure, and flow rate",
+    ],
+    acceptanceCriteria: [
+      "Script generates a time vector t = 0:0.1:60 (60 seconds of data at 10 Hz)",
+      "Sensor data generated with sin/cos + random noise to simulate real readings",
+      "Subplot figure has 3 panels, each with labeled axes and a legend",
+      "Unit conversion functions work correctly (spot-check values)",
+    ],
+    filesInvolved: [
+      "practice/simulation/fundamentals/sensor_data.m",
+      "practice/simulation/fundamentals/unit_convert.m",
+      "practice/simulation/fundamentals/plot_sensors.m",
+    ],
+    hints: [
+      "Time vector: t = 0:0.1:60; creates 601 points from 0 to 60 seconds. This is your x-axis for all plots.",
+      "Simulated sensor data: temp = 300 + 20*sin(2*pi*0.05*t) + 2*randn(size(t)); — 300°C baseline, 0.05 Hz oscillation, Gaussian noise. This mimics a reactor temperature oscillating around setpoint.",
+      "Subplots: figure; subplot(3,1,1); plot(t, temp, 'r'); xlabel('Time (s)'); ylabel('Temp (°C)'); title('Reactor Temperature'); grid on;",
+      "Unit conversion: Write functions — function F = c2f(C) F = C*9/5 + 32; end. Save as c2f.m or inline in the script.",
+      "randn(size(t)) adds Gaussian noise. In real systems, sensor noise is always present — learning to visualize and filter it is fundamental.",
+      "Works in both Matlab and GNU Octave (free). Install Octave if you don't have a Matlab license: brew install octave",
+    ],
+  },
+  {
+    id: "sim-02",
+    title: "Signal Processing — Filtering Noisy Sensor Data",
+    phase: 1,
+    difficulty: "intermediate",
+    category: "simulation",
+    objectives: [
+      "Generate noisy sensor data and apply a moving average filter",
+      "Implement a low-pass Butterworth filter using butter() and filter()",
+      "Compare raw vs. filtered signals on the same plot",
+      "Compute and display the SNR (signal-to-noise ratio) before and after filtering",
+    ],
+    acceptanceCriteria: [
+      "Moving average filter implemented manually (not using built-in smooth)",
+      "Butterworth filter uses butter(order, cutoff) and filter(b, a, signal)",
+      "Plot overlays raw (light gray) and filtered (blue) signals",
+      "SNR computed as 10*log10(var(signal)/var(noise)) and printed for both",
+    ],
+    filesInvolved: [
+      "practice/simulation/signals/moving_avg.m",
+      "practice/simulation/signals/butterworth_filter.m",
+      "practice/simulation/signals/compare_filters.m",
+    ],
+    hints: [
+      "Moving average: filtered(i) = mean(raw(max(1,i-N):i)) where N is the window size. A 10-point window at 10 Hz = 1-second averaging.",
+      "Vectorized moving average: Use conv(raw, ones(1,N)/N, 'same') for efficiency. conv() does the sliding window multiply-and-sum.",
+      "Butterworth: [b, a] = butter(4, 0.1); filtered = filter(b, a, raw); The 4 is the filter order, 0.1 is the normalized cutoff frequency (0.1 = 10% of Nyquist).",
+      "Higher filter order = sharper cutoff but more phase distortion. In control systems, phase matters — too much filter lag causes instability.",
+      "SNR: clean = 300 + 20*sin(2*pi*0.05*t); noise = 2*randn(size(t)); raw = clean + noise; snr_before = 10*log10(var(clean)/var(noise));",
+      "In nuclear instrumentation, sensor signals are ALWAYS filtered before being used for control decisions. Raw signals are too noisy for threshold comparisons.",
+    ],
+  },
+  {
+    id: "sim-03",
+    title: "Transfer Functions & System Response",
+    phase: 1,
+    difficulty: "intermediate",
+    category: "simulation",
+    objectives: [
+      "Define a first-order transfer function G(s) = K / (tau*s + 1) for a temperature sensor",
+      "Plot the step response and identify time constant, rise time, and steady-state value",
+      "Define a second-order system and plot step response showing overshoot and settling time",
+      "Use bode() to plot frequency response of both systems",
+    ],
+    acceptanceCriteria: [
+      "First-order system: tf(K, [tau 1]) with K=1, tau=5 (5-second time constant)",
+      "Step response plotted with annotations for 63.2% point (time constant) and steady-state",
+      "Second-order system: tf(wn^2, [1 2*zeta*wn wn^2]) with underdamped response (zeta=0.3)",
+      "Bode plot shows magnitude and phase for both systems",
+    ],
+    filesInvolved: [
+      "practice/simulation/controls/first_order.m",
+      "practice/simulation/controls/second_order.m",
+      "practice/simulation/controls/bode_analysis.m",
+    ],
+    hints: [
+      "Transfer function: G = tf(1, [5 1]); — numerator [1], denominator [5 1] meaning 5s+1. This models a sensor with 5-second lag.",
+      "Step response: step(G); or [y,t] = step(G); plot(t,y); — shows how the system responds to a sudden input change (like a step change in reactor temperature).",
+      "Time constant tau: the time to reach 63.2% of final value. For G = 1/(5s+1), tau = 5 seconds. Find it: idx = find(y >= 0.632, 1); tau_measured = t(idx);",
+      "Second-order: wn = 2; zeta = 0.3; G2 = tf(wn^2, [1 2*zeta*wn wn^2]); — wn is natural frequency, zeta is damping ratio. zeta < 1 = underdamped (oscillates).",
+      "Overshoot = exp(-pi*zeta/sqrt(1-zeta^2)) * 100%. For zeta=0.3, overshoot ≈ 37%. In nuclear control, overshoot above safety limits is unacceptable — zeta must be chosen carefully.",
+      "Bode: bode(G); shows magnitude (dB) and phase (degrees) vs. frequency. The -3dB point is the bandwidth — frequencies above this are attenuated. Critical for understanding how fast your controller can respond.",
+    ],
+  },
+  {
+    id: "sim-04",
+    title: "PID Controller Design",
+    phase: 2,
+    difficulty: "advanced",
+    category: "simulation",
+    objectives: [
+      "Model a plant (thermal system) as a transfer function",
+      "Design a PID controller and tune Kp, Ki, Kd gains",
+      "Simulate closed-loop step response and evaluate performance metrics",
+      "Show the effect of each gain (P, I, D) individually on the response",
+    ],
+    acceptanceCriteria: [
+      "Plant model: G_plant = tf(1, [10 1]) (10-second thermal lag)",
+      "PID controller: C = pid(Kp, Ki, Kd) or C = tf([Kd Kp Ki], [1 0])",
+      "Closed-loop: T = feedback(C*G_plant, 1); step(T) shows stable response",
+      "Comparison plot: P-only, PI, PID responses overlaid showing improvement",
+      "Performance metrics printed: rise time, settling time, overshoot, steady-state error",
+    ],
+    filesInvolved: [
+      "practice/simulation/controls/pid_design.m",
+      "practice/simulation/controls/pid_tuning.m",
+      "practice/simulation/controls/gain_comparison.m",
+    ],
+    hints: [
+      "Plant: G = tf(1, [10 1]); — slow thermal process. Without a controller, it takes ~30 seconds to reach setpoint.",
+      "PID transfer function: C(s) = Kp + Ki/s + Kd*s. In Matlab: C = pid(Kp, Ki, Kd); or manually: C = tf([Kd Kp Ki], [1 0]);",
+      "Start with P-only: Kp=5, Ki=0, Kd=0. Then add I: Ki=0.5 (eliminates steady-state error). Then add D: Kd=2 (reduces overshoot).",
+      "Closed-loop: T = feedback(C * G, 1); [y,t] = step(T, 50); plot(t,y); — the feedback() function creates the closed-loop transfer function.",
+      "Performance: info = stepinfo(T); disp(info.RiseTime); disp(info.Overshoot); disp(info.SettlingTime); — stepinfo() computes all metrics automatically.",
+      "In nuclear control rooms, PID controllers regulate coolant temperature, pressure, and flow rate. Poorly tuned gains cause oscillations — in a reactor, that's a safety event. The Ziegler-Nichols method gives a starting point: increase Kp until oscillation, then compute Ki and Kd from the oscillation period.",
+    ],
+  },
+  {
+    id: "sim-05",
+    title: "Simulink Concepts — Block Diagram Simulation",
+    phase: 2,
+    difficulty: "advanced",
+    category: "simulation",
+    objectives: [
+      "Implement a Simulink-style block diagram simulation in Matlab script",
+      "Model a feedback control loop: setpoint → error → PID → plant → sensor → feedback",
+      "Simulate disturbance rejection (sudden load change at t=30s)",
+      "Plot setpoint tracking, control effort, and error over time",
+    ],
+    acceptanceCriteria: [
+      "Time-domain simulation using a for-loop (discrete-time, dt=0.01s)",
+      "PID implemented as: u = Kp*e + Ki*integral + Kd*(e - e_prev)/dt",
+      "Disturbance added at t=30: plant output jumps by +50 units",
+      "4-panel subplot: setpoint vs. actual, error, control effort, disturbance",
+    ],
+    filesInvolved: [
+      "practice/simulation/simulink/feedback_sim.m",
+      "practice/simulation/simulink/disturbance_rejection.m",
+    ],
+    hints: [
+      "This simulates what Simulink does graphically, but as code. Each 'block' is a line of computation in the loop.",
+      "Simulation skeleton: dt = 0.01; t = 0:dt:60; y = zeros(size(t)); u = zeros(size(t)); e_int = 0; e_prev = 0; for i = 2:length(t) ... end",
+      "PID block: e = setpoint - y(i-1); e_int = e_int + e*dt; e_deriv = (e - e_prev)/dt; u(i) = Kp*e + Ki*e_int + Kd*e_deriv; e_prev = e;",
+      "Plant block (first-order): y(i) = y(i-1) + (u(i) - y(i-1))/tau * dt; — Euler integration of dy/dt = (u - y)/tau.",
+      "Disturbance: if t(i) >= 30, y(i) = y(i) + disturbance_magnitude; end. Watch the PID controller reject the disturbance and return to setpoint.",
+      "Anti-windup: Clamp e_int to prevent integral term from growing unbounded when the actuator saturates. e_int = max(min(e_int, int_max), -int_max). Essential in real controllers.",
+    ],
+  },
+  {
+    id: "sim-06",
+    title: "Plant Modeling — Nuclear Thermal-Hydraulic Simulation",
+    phase: 2,
+    difficulty: "advanced",
+    category: "simulation",
+    objectives: [
+      "Model a simplified nuclear reactor thermal system with coupled differential equations",
+      "Simulate coolant temperature, fuel temperature, and neutron power",
+      "Implement a safety trip: automatic shutdown when temperature exceeds limit",
+      "Visualize the transient response during a loss-of-flow scenario",
+    ],
+    acceptanceCriteria: [
+      "Three coupled ODEs solved with Euler or ode45",
+      "Parameters: fuel heat capacity, coolant flow rate, heat transfer coefficient",
+      "Safety trip triggers at T_fuel > 1200°C, inserting negative reactivity (SCRAM)",
+      "Plot shows fuel temp, coolant temp, power level, and trip indicator vs. time",
+    ],
+    filesInvolved: [
+      "practice/simulation/plant/reactor_thermal.m",
+      "practice/simulation/plant/safety_trip.m",
+      "practice/simulation/plant/loss_of_flow.m",
+    ],
+    hints: [
+      "Simplified point-kinetics + thermal model: dT_fuel/dt = (P - h*(T_fuel - T_cool)) / C_fuel. dT_cool/dt = (h*(T_fuel - T_cool) - flow*Cp*(T_cool - T_inlet)) / C_cool.",
+      "Parameters: C_fuel = 500 (J/°C, fuel heat capacity), C_cool = 2000 (coolant), h = 100 (W/°C, heat transfer), flow = 10 (kg/s), Cp = 4180 (J/kg/°C, water).",
+      "Power: Start at P = 1e6 W (1 MW). For SCRAM: P drops exponentially P = P0 * exp(-t_since_trip / 0.5) (500ms e-folding time).",
+      "Loss of flow: At t=10s, reduce flow from 10 to 2 kg/s (pump failure). Watch T_fuel rise. The safety system should trip before T_fuel hits 1200°C.",
+      "ode45 approach: dydt = @(t,y) [power_eq; fuel_eq; coolant_eq]; [t,y] = ode45(dydt, [0 60], [P0; T_fuel0; T_cool0]); — more accurate than Euler for stiff systems.",
+      "This is a dramatically simplified model of what Westinghouse engineers simulate with real thermal-hydraulic codes (like RELAP or WCOBRA). Understanding the fundamentals — coupled ODEs, heat transfer, safety margins — is what the role requires.",
+    ],
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Phase titles for dashboard
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export const phaseTitles: Record<TaskCategory, Record<number, string>> = {
   oop: {
     1: "SOLID Principles",
@@ -808,5 +1011,9 @@ export const phaseTitles: Record<TaskCategory, Record<number, string>> = {
   testing: {
     1: "Unit Testing",
     2: "Integration & Documentation",
+  },
+  simulation: {
+    1: "Matlab Fundamentals",
+    2: "Control Systems & Plant Modeling",
   },
 };
