@@ -1,6 +1,6 @@
 /**
  * net-02: Multi-threaded TCP server.
- * TODO: Use ExecutorService to handle multiple clients simultaneously.
+ * Uses ExecutorService to handle multiple clients simultaneously.
  */
 import java.net.*;
 import java.io.*;
@@ -13,7 +13,17 @@ public class MultiServer {
 
     public static void main(String[] args) throws IOException {
         ExecutorService pool = Executors.newFixedThreadPool(10);
-        // TODO: accept loop, submit ClientHandler for each connection
+        int port = 9000;
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Multi-server listening on port " + port);
+            while (true) {
+                Socket client = serverSocket.accept();
+                int clientId = clientIdGen.incrementAndGet();
+                System.out.println("[Client " + clientId + "] connected from " + client.getRemoteSocketAddress());
+                pool.submit(new ClientHandler(client, clientId));
+            }
+        }
     }
 
     public static int getMessageCount() { return messageCount.get(); }

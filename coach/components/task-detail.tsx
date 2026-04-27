@@ -24,7 +24,7 @@ export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDeta
   const [confirmSolve, setConfirmSolve] = useState(false);
   const [solveMessage, setSolveMessage] = useState<string | null>(null);
 
-  const hasSolution = task.category === "simulation";
+  const hasSolution = task.category === "simulation" || task.category === "networking";
 
   const runVerification = useCallback(async () => {
     setVerifying(true);

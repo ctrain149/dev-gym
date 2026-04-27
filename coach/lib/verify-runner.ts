@@ -192,9 +192,20 @@ async function runCompileCheck(verifier: TaskVerifier): Promise<CheckResult | nu
       };
     }
 
+    // Stub out graphics functions as proper functions so command-style
+    // calls like "hold on" and "grid on" work in headless mode
+    const gfxStubs = [
+      "figure", "subplot", "plot", "xlabel", "ylabel", "title",
+      "legend", "grid", "hold", "axes", "text", "yline", "xline",
+      "pause", "sgtitle", "bode", "step",
+    ]
+      .map((fn) => `function ${fn}(varargin); endfunction`)
+      .join("; ");
+    const evalCmd = `${gfxStubs}; run('${mainFile}')`;
+
     const result = await exec(
       "octave",
-      ["--no-gui", "--no-window-system", "--eval", `run('${mainFile}')`],
+      ["--no-gui", "--no-window-system", "--eval", evalCmd],
       dirname(mainFile),
     );
     if (result.code !== 0) {

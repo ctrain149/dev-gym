@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import { join } from "path";
+import { writeFile, mkdir } from "fs/promises";
+import { join, dirname } from "path";
 import { solutionRegistry } from "@/lib/solutions";
 
 const PROJECT_ROOT = join(process.cwd(), "..");
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 
     for (const file of files) {
       const absPath = join(PROJECT_ROOT, file);
+      await mkdir(dirname(absPath), { recursive: true });
       await writeFile(absPath, solutions[file], "utf-8");
       written++;
     }

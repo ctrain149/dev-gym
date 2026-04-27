@@ -620,6 +620,641 @@ end
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// net-01: TCP Echo Server & Client
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net01_EchoServer = `/**
+ * net-01: TCP Echo Server.
+ * Listens on port 9000, accepts a client, echoes back every line.
+ */
+import java.net.*;
+import java.io.*;
+
+public class EchoServer {
+    public static void main(String[] args) throws IOException {
+        int port = 9000;
+        System.out.println("Echo server starting on port " + port + "...");
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            while (true) {
+                Socket client = serverSocket.accept();
+                System.out.println("Client connected: " + client.getRemoteSocketAddress());
+
+                try (
+                    BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    PrintWriter out = new PrintWriter(client.getOutputStream(), true)
+                ) {
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        System.out.println("Received: " + line);
+                        out.println(line);
+                    }
+                } finally {
+                    System.out.println("Client disconnected: " + client.getRemoteSocketAddress());
+                    client.close();
+                }
+            }
+        }
+    }
+}
+`;
+
+const net01_EchoClient = `/**
+ * net-01: TCP Echo Client.
+ * Connects to localhost:9000, sends user input, prints response.
+ */
+import java.net.*;
+import java.io.*;
+
+public class EchoClient {
+    public static void main(String[] args) throws IOException {
+        String host = "localhost";
+        int port = 9000;
+
+        try (
+            Socket socket = new Socket(host, port);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in))
+        ) {
+            System.out.println("Connected to " + host + ":" + port);
+            System.out.println("Type messages (Ctrl+D to quit):");
+
+            String line;
+            while ((line = stdin.readLine()) != null) {
+                out.println(line);
+                String response = in.readLine();
+                System.out.println("Echo: " + response);
+            }
+        }
+        System.out.println("Disconnected.");
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// net-02: Multi-Threaded TCP Server
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net02_MultiServer = `/**
+ * net-02: Multi-threaded TCP server.
+ * Uses ExecutorService to handle multiple clients simultaneously.
+ */
+import java.net.*;
+import java.io.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+
+public class MultiServer {
+    private static final AtomicInteger messageCount = new AtomicInteger(0);
+    private static final AtomicInteger clientIdGen = new AtomicInteger(0);
+
+    public static void main(String[] args) throws IOException {
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        int port = 9000;
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Multi-server listening on port " + port);
+            while (true) {
+                Socket client = serverSocket.accept();
+                int clientId = clientIdGen.incrementAndGet();
+                System.out.println("[Client " + clientId + "] connected from " + client.getRemoteSocketAddress());
+                pool.submit(new ClientHandler(client, clientId));
+            }
+        }
+    }
+
+    public static int getMessageCount() { return messageCount.get(); }
+    public static int incrementMessages() { return messageCount.incrementAndGet(); }
+}
+`;
+
+const net02_ClientHandler = `/** net-02: Runnable that handles one client connection in its own thread. */
+import java.net.*;
+import java.io.*;
+
+public class ClientHandler implements Runnable {
+    private final Socket socket;
+    private final int clientId;
+
+    public ClientHandler(Socket socket, int clientId) {
+        this.socket = socket;
+        this.clientId = clientId;
+    }
+
+    @Override
+    public void run() {
+        try (
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
+        ) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                int count = MultiServer.incrementMessages();
+                System.out.println("[Client " + clientId + "] msg #" + count + ": " + line);
+                out.println("[" + clientId + "] " + line);
+            }
+        } catch (IOException e) {
+            System.err.println("[Client " + clientId + "] error: " + e.getMessage());
+        } finally {
+            try { socket.close(); } catch (IOException ignored) {}
+            System.out.println("[Client " + clientId + "] disconnected. Total messages: " + MultiServer.getMessageCount());
+        }
+    }
+}
+`;
+
+const net02_MultiClient = `/**
+ * net-02: Test client for MultiServer.
+ * Connects, sends a few messages, and disconnects.
+ */
+import java.net.*;
+import java.io.*;
+
+public class MultiClient {
+    public static void main(String[] args) throws IOException {
+        String host = "localhost";
+        int port = 9000;
+
+        try (
+            Socket socket = new Socket(host, port);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in))
+        ) {
+            System.out.println("Connected to multi-server at " + host + ":" + port);
+            System.out.println("Type messages (Ctrl+D to quit):");
+
+            String line;
+            while ((line = stdin.readLine()) != null) {
+                out.println(line);
+                String response = in.readLine();
+                System.out.println("Server: " + response);
+            }
+        }
+        System.out.println("Disconnected.");
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// net-03: UDP Datagram Communication
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net03_SensorSender = `/**
+ * net-03: UDP Sensor Sender.
+ * Sends simulated sensor readings as datagrams to port 9001 every 500ms.
+ * Format: SENSOR_TYPE:VALUE:TIMESTAMP
+ */
+import java.net.*;
+import java.io.*;
+import java.time.Instant;
+
+public class SensorSender {
+    public static void main(String[] args) throws Exception {
+        DatagramSocket socket = new DatagramSocket();
+        InetAddress address = InetAddress.getByName("localhost");
+        int port = 9001;
+        String[] sensors = {"TEMP", "PRES", "FLOW"};
+        double[] baselines = {300.0, 155.0, 12.0};
+        double[] amplitudes = {20.0, 5.0, 2.0};
+
+        System.out.println("Sending sensor data to " + address + ":" + port);
+        int seq = 0;
+
+        while (true) {
+            for (int i = 0; i < sensors.length; i++) {
+                double value = baselines[i] + amplitudes[i] * Math.sin(seq * 0.1) + Math.random() * 2;
+                String msg = sensors[i] + ":" + String.format("%.2f", value) + ":" + Instant.now();
+                byte[] data = msg.getBytes();
+                DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
+                socket.send(packet);
+                System.out.println("Sent: " + msg);
+            }
+            seq++;
+            Thread.sleep(500);
+        }
+    }
+}
+`;
+
+const net03_SensorReceiver = `/**
+ * net-03: UDP Sensor Receiver.
+ * Binds to port 9001, receives datagrams, parses and displays readings.
+ */
+import java.net.*;
+
+public class SensorReceiver {
+    public static void main(String[] args) throws Exception {
+        int port = 9001;
+        DatagramSocket socket = new DatagramSocket(port);
+        byte[] buffer = new byte[1024];
+
+        System.out.println("Listening for sensor data on port " + port + "...");
+        int received = 0;
+
+        while (true) {
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
+            received++;
+
+            String msg = new String(packet.getData(), 0, packet.getLength());
+            String[] parts = msg.split(":");
+
+            if (parts.length >= 3) {
+                String sensor = parts[0];
+                String value = parts[1];
+                String timestamp = parts[2];
+                System.out.printf("[#%d] %-5s = %s  (at %s)  from %s%n",
+                    received, sensor, value, timestamp, packet.getSocketAddress());
+            } else {
+                System.out.println("Malformed packet: " + msg);
+            }
+        }
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// net-04: Custom Binary Protocol
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net04_MessageType = `/** net-04: Binary protocol message types. */
+public enum MessageType {
+    COMMAND((byte) 0x01),
+    STATUS((byte) 0x02),
+    ALARM((byte) 0x03);
+
+    private final byte code;
+    MessageType(byte code) { this.code = code; }
+    public byte getCode() { return code; }
+
+    public static MessageType fromCode(byte code) {
+        for (MessageType t : values()) if (t.code == code) return t;
+        throw new IllegalArgumentException("Unknown message type: " + code);
+    }
+}
+`;
+
+const net04_ProtocolMessage = `/** net-04: Represents a message with type and payload. */
+public record ProtocolMessage(MessageType type, byte[] payload) {
+    public String payloadAsString() { return new String(payload); }
+}
+`;
+
+const net04_ProtocolEncoder = `/**
+ * net-04: Encode ProtocolMessage to bytes: [1 byte type][4 bytes length][N bytes payload]
+ */
+import java.nio.ByteBuffer;
+
+public class ProtocolEncoder {
+    public static byte[] encode(ProtocolMessage msg) {
+        byte[] payload = msg.payload();
+        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + payload.length);
+        buf.put(msg.type().getCode());
+        buf.putInt(payload.length);
+        buf.put(payload);
+        return buf.array();
+    }
+}
+`;
+
+const net04_ProtocolDecoder = `/**
+ * net-04: Decode bytes back into ProtocolMessage.
+ * Reads 1 byte type, 4 bytes length, then N bytes payload.
+ */
+import java.io.*;
+
+public class ProtocolDecoder {
+    public static ProtocolMessage decode(DataInputStream in) throws IOException {
+        byte typeCode = in.readByte();
+        MessageType type = MessageType.fromCode(typeCode);
+        int length = in.readInt();
+        byte[] payload = new byte[length];
+        in.readFully(payload);
+        return new ProtocolMessage(type, payload);
+    }
+}
+`;
+
+const net04_ProtocolServer = `/**
+ * net-04: Binary Protocol Server.
+ * Accepts connections, decodes binary messages, sends responses.
+ */
+import java.net.*;
+import java.io.*;
+
+public class ProtocolServer {
+    public static void main(String[] args) throws IOException {
+        int port = 9003;
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Protocol server on port " + port);
+
+            while (true) {
+                Socket client = serverSocket.accept();
+                System.out.println("Client connected: " + client.getRemoteSocketAddress());
+
+                try (
+                    DataInputStream in = new DataInputStream(client.getInputStream());
+                    DataOutputStream out = new DataOutputStream(client.getOutputStream())
+                ) {
+                    while (true) {
+                        ProtocolMessage msg = ProtocolDecoder.decode(in);
+                        System.out.println("Received " + msg.type() + ": " + msg.payloadAsString());
+
+                        // Build a response
+                        String response;
+                        switch (msg.type()) {
+                            case COMMAND:
+                                response = "ACK: " + msg.payloadAsString();
+                                break;
+                            case STATUS:
+                                response = "STATUS OK";
+                                break;
+                            case ALARM:
+                                response = "ALARM RECEIVED — initiating safety protocol";
+                                break;
+                            default:
+                                response = "UNKNOWN";
+                        }
+
+                        byte[] encoded = ProtocolEncoder.encode(
+                            new ProtocolMessage(msg.type(), response.getBytes()));
+                        out.write(encoded);
+                        out.flush();
+                    }
+                } catch (EOFException e) {
+                    System.out.println("Client disconnected.");
+                }
+            }
+        }
+    }
+}
+`;
+
+const net04_ProtocolClient = `/**
+ * net-04: Binary Protocol Client.
+ * Sends binary-encoded messages to the protocol server and reads responses.
+ */
+import java.net.*;
+import java.io.*;
+
+public class ProtocolClient {
+    public static void main(String[] args) throws IOException {
+        String host = "localhost";
+        int port = 9003;
+
+        try (
+            Socket socket = new Socket(host, port);
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream())
+        ) {
+            System.out.println("Connected to protocol server.");
+
+            // Send a COMMAND
+            sendMessage(out, MessageType.COMMAND, "SET TEMP_SETPOINT 350");
+            ProtocolMessage resp1 = ProtocolDecoder.decode(in);
+            System.out.println("Response: " + resp1.payloadAsString());
+
+            // Send a STATUS request
+            sendMessage(out, MessageType.STATUS, "REACTOR_STATUS");
+            ProtocolMessage resp2 = ProtocolDecoder.decode(in);
+            System.out.println("Response: " + resp2.payloadAsString());
+
+            // Send an ALARM
+            sendMessage(out, MessageType.ALARM, "HIGH TEMP ZONE 4");
+            ProtocolMessage resp3 = ProtocolDecoder.decode(in);
+            System.out.println("Response: " + resp3.payloadAsString());
+        }
+    }
+
+    private static void sendMessage(DataOutputStream out, MessageType type, String payload) throws IOException {
+        byte[] encoded = ProtocolEncoder.encode(new ProtocolMessage(type, payload.getBytes()));
+        out.write(encoded);
+        out.flush();
+        System.out.println("Sent " + type + ": " + payload);
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// net-05: TCP File Transfer
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net05_FileServer = `/**
+ * net-05: TCP File Server.
+ * Accepts filename request, sends file size (long) then streams file bytes.
+ * If file not found, sends -1 as size.
+ * Uses 8KB buffer for streaming.
+ */
+import java.net.*;
+import java.io.*;
+
+public class FileServer {
+    private static final String SERVE_DIR = "./files";
+
+    public static void main(String[] args) throws IOException {
+        int port = 9002;
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("File server on port " + port + ", serving from " + SERVE_DIR);
+
+            while (true) {
+                Socket client = serverSocket.accept();
+                System.out.println("Client connected: " + client.getRemoteSocketAddress());
+
+                try (
+                    DataInputStream in = new DataInputStream(client.getInputStream());
+                    DataOutputStream out = new DataOutputStream(client.getOutputStream())
+                ) {
+                    String filename = in.readUTF();
+                    System.out.println("Requested: " + filename);
+
+                    File file = new File(SERVE_DIR, filename);
+                    if (!file.exists() || !file.isFile()) {
+                        System.out.println("File not found: " + filename);
+                        out.writeLong(-1);
+                        out.flush();
+                        continue;
+                    }
+
+                    long fileSize = file.length();
+                    out.writeLong(fileSize);
+                    System.out.println("Sending " + filename + " (" + fileSize + " bytes)");
+
+                    byte[] buffer = new byte[8192];
+                    try (FileInputStream fis = new FileInputStream(file)) {
+                        int bytesRead;
+                        long totalSent = 0;
+                        while ((bytesRead = fis.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                            totalSent += bytesRead;
+                        }
+                        out.flush();
+                        System.out.println("Sent " + totalSent + " bytes.");
+                    }
+                } catch (IOException e) {
+                    System.err.println("Transfer error: " + e.getMessage());
+                } finally {
+                    client.close();
+                }
+            }
+        }
+    }
+}
+`;
+
+const net05_FileClient = `/**
+ * net-05: TCP File Client.
+ * Sends filename, receives file size (long), streams file bytes to disk.
+ * Verifies received file size matches expected size.
+ */
+import java.net.*;
+import java.io.*;
+
+public class FileClient {
+    public static void main(String[] args) throws IOException {
+        String host = "localhost";
+        int port = 9002;
+        String filename = args.length > 0 ? args[0] : "test.txt";
+        String savePath = "downloaded_" + filename;
+
+        try (
+            Socket socket = new Socket(host, port);
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream())
+        ) {
+            // Request the file
+            out.writeUTF(filename);
+            out.flush();
+
+            // Read file size
+            long fileSize = in.readLong();
+            if (fileSize == -1) {
+                System.out.println("Error: file '" + filename + "' not found on server.");
+                return;
+            }
+            System.out.println("Receiving " + filename + " (" + fileSize + " bytes)...");
+
+            // Stream to disk
+            byte[] buffer = new byte[8192];
+            long totalReceived = 0;
+            try (FileOutputStream fos = new FileOutputStream(savePath)) {
+                int bytesRead;
+                while (totalReceived < fileSize && (bytesRead = in.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                    totalReceived += bytesRead;
+                }
+            }
+
+            // Verify
+            if (totalReceived == fileSize) {
+                System.out.println("Success! Saved to " + savePath + " (" + totalReceived + " bytes)");
+            } else {
+                System.out.println("Warning: expected " + fileSize + " bytes but received " + totalReceived);
+            }
+        }
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// net-06: Network Diagnostics Tool
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const net06_PortScanner = `/**
+ * net-06: Multi-threaded Port Scanner.
+ * Scans ports in parallel, reports open ports with latency.
+ */
+import java.net.*;
+import java.io.*;
+import java.util.concurrent.*;
+import java.util.*;
+
+public class PortScanner {
+    public static void main(String[] args) throws Exception {
+        String host = "localhost";
+        int startPort = 1, endPort = 1024, timeout = 200;
+
+        System.out.println("Scanning " + host + " ports " + startPort + "-" + endPort + "...");
+        long startTime = System.currentTimeMillis();
+
+        ExecutorService pool = Executors.newFixedThreadPool(50);
+        List<Future<String>> futures = new ArrayList<>();
+
+        for (int port = startPort; port <= endPort; port++) {
+            final int p = port;
+            futures.add(pool.submit(() -> {
+                long t0 = System.nanoTime();
+                try (Socket s = new Socket()) {
+                    s.connect(new InetSocketAddress(host, p), timeout);
+                    long latency = (System.nanoTime() - t0) / 1_000_000;
+                    return String.format("  Port %-5d  OPEN   %dms", p, latency);
+                } catch (IOException e) {
+                    return null; // closed
+                }
+            }));
+        }
+
+        int openCount = 0;
+        for (Future<String> f : futures) {
+            String result = f.get();
+            if (result != null) {
+                System.out.println(result);
+                openCount++;
+            }
+        }
+
+        pool.shutdown();
+        long elapsed = System.currentTimeMillis() - startTime;
+        System.out.println("\\nScan complete: " + openCount + " open port(s) found in " + elapsed + "ms");
+    }
+}
+`;
+
+const net06_PingTool = `/**
+ * net-06: Ping-like reachability checker.
+ * Sends N periodic checks, reports packet loss percentage.
+ */
+import java.net.*;
+
+public class PingTool {
+    public static void main(String[] args) throws Exception {
+        String host = args.length > 0 ? args[0] : "localhost";
+        int count = 10, timeout = 1000;
+
+        InetAddress address = InetAddress.getByName(host);
+        System.out.println("PING " + host + " (" + address.getHostAddress() + ")");
+
+        int success = 0;
+        long totalTime = 0;
+
+        for (int i = 1; i <= count; i++) {
+            long start = System.nanoTime();
+            boolean reachable = address.isReachable(timeout);
+            long elapsed = (System.nanoTime() - start) / 1_000_000;
+
+            if (reachable) {
+                System.out.println("Reply from " + host + ": time=" + elapsed + "ms");
+                success++;
+                totalTime += elapsed;
+            } else {
+                System.out.println("Request timed out.");
+            }
+            Thread.sleep(1000);
+        }
+
+        int lost = count - success;
+        double lossPercent = (lost * 100.0) / count;
+        System.out.println("\\n--- " + host + " ping statistics ---");
+        System.out.printf("%d packets sent, %d received, %.0f%% loss%n", count, success, lossPercent);
+        if (success > 0) {
+            System.out.printf("avg round-trip: %dms%n", totalTime / success);
+        }
+    }
+}
+`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Registry: taskId → { filePath: solutionContent }
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -651,5 +1286,39 @@ export const solutionRegistry: Record<string, Record<string, string>> = {
     "practice/simulation/plant/reactor_thermal.m": reactor_thermal_m,
     "practice/simulation/plant/safety_trip.m": safety_trip_m,
     "practice/simulation/plant/loss_of_flow.m": loss_of_flow_m,
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════════
+  // Networking
+  // ═════════════════════════════════════════════════════════════════════════════
+
+  "net-01": {
+    "practice/networking/tcp/EchoServer.java": net01_EchoServer,
+    "practice/networking/tcp/EchoClient.java": net01_EchoClient,
+  },
+  "net-02": {
+    "practice/networking/tcp/MultiServer.java": net02_MultiServer,
+    "practice/networking/tcp/ClientHandler.java": net02_ClientHandler,
+    "practice/networking/tcp/MultiClient.java": net02_MultiClient,
+  },
+  "net-03": {
+    "practice/networking/udp/SensorSender.java": net03_SensorSender,
+    "practice/networking/udp/SensorReceiver.java": net03_SensorReceiver,
+  },
+  "net-04": {
+    "practice/networking/protocol/MessageType.java": net04_MessageType,
+    "practice/networking/protocol/ProtocolMessage.java": net04_ProtocolMessage,
+    "practice/networking/protocol/ProtocolEncoder.java": net04_ProtocolEncoder,
+    "practice/networking/protocol/ProtocolDecoder.java": net04_ProtocolDecoder,
+    "practice/networking/protocol/ProtocolServer.java": net04_ProtocolServer,
+    "practice/networking/protocol/ProtocolClient.java": net04_ProtocolClient,
+  },
+  "net-05": {
+    "practice/networking/filetransfer/FileServer.java": net05_FileServer,
+    "practice/networking/filetransfer/FileClient.java": net05_FileClient,
+  },
+  "net-06": {
+    "practice/networking/diagnostics/PortScanner.java": net06_PortScanner,
+    "practice/networking/diagnostics/PingTool.java": net06_PingTool,
   },
 };

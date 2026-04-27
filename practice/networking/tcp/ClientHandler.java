@@ -1,4 +1,4 @@
-/** net-02: TODO — Runnable that handles one client connection in its own thread. */
+/** net-02: Runnable that handles one client connection in its own thread. */
 import java.net.*;
 import java.io.*;
 
@@ -13,6 +13,21 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        // TODO: read lines, echo back, increment message counter, close
+        try (
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
+        ) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                int count = MultiServer.incrementMessages();
+                System.out.println("[Client " + clientId + "] msg #" + count + ": " + line);
+                out.println("[" + clientId + "] " + line);
+            }
+        } catch (IOException e) {
+            System.err.println("[Client " + clientId + "] error: " + e.getMessage());
+        } finally {
+            try { socket.close(); } catch (IOException ignored) {}
+            System.out.println("[Client " + clientId + "] disconnected. Total messages: " + MultiServer.getMessageCount());
+        }
     }
 }

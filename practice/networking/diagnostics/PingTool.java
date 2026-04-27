@@ -1,6 +1,6 @@
 /**
  * net-06: Ping-like reachability checker.
- * TODO: Send N periodic checks, report packet loss percentage.
+ * Sends N periodic checks, reports packet loss percentage.
  */
 import java.net.*;
 
@@ -9,8 +9,33 @@ public class PingTool {
         String host = args.length > 0 ? args[0] : "localhost";
         int count = 10, timeout = 1000;
 
-        // TODO: InetAddress.isReachable() in loop, track success/fail
-        // Print: "Reply from host: time=Xms" or "Request timed out"
-        // Final: "X packets sent, Y received, Z% loss"
+        InetAddress address = InetAddress.getByName(host);
+        System.out.println("PING " + host + " (" + address.getHostAddress() + ")");
+
+        int success = 0;
+        long totalTime = 0;
+
+        for (int i = 1; i <= count; i++) {
+            long start = System.nanoTime();
+            boolean reachable = address.isReachable(timeout);
+            long elapsed = (System.nanoTime() - start) / 1_000_000;
+
+            if (reachable) {
+                System.out.println("Reply from " + host + ": time=" + elapsed + "ms");
+                success++;
+                totalTime += elapsed;
+            } else {
+                System.out.println("Request timed out.");
+            }
+            Thread.sleep(1000);
+        }
+
+        int lost = count - success;
+        double lossPercent = (lost * 100.0) / count;
+        System.out.println("\n--- " + host + " ping statistics ---");
+        System.out.printf("%d packets sent, %d received, %.0f%% loss%n", count, success, lossPercent);
+        if (success > 0) {
+            System.out.printf("avg round-trip: %dms%n", totalTime / success);
+        }
     }
 }

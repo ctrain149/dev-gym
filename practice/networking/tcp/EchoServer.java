@@ -1,6 +1,6 @@
 /**
  * net-01: TCP Echo Server.
- * TODO: Listen on port 9000, accept a client, echo back every line.
+ * Listens on port 9000, accepts a client, echoes back every line.
  */
 import java.net.*;
 import java.io.*;
@@ -10,6 +10,25 @@ public class EchoServer {
         int port = 9000;
         System.out.println("Echo server starting on port " + port + "...");
 
-        // TODO: ServerSocket, accept(), read loop, echo, close
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            while (true) {
+                Socket client = serverSocket.accept();
+                System.out.println("Client connected: " + client.getRemoteSocketAddress());
+
+                try (
+                    BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    PrintWriter out = new PrintWriter(client.getOutputStream(), true)
+                ) {
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        System.out.println("Received: " + line);
+                        out.println(line);
+                    }
+                } finally {
+                    System.out.println("Client disconnected: " + client.getRemoteSocketAddress());
+                    client.close();
+                }
+            }
+        }
     }
 }
