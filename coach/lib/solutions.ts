@@ -71,7 +71,10 @@ plot(t, flow, 'g');
 xlabel('Time (s)'); ylabel('Flow (kg/s)');
 title('Coolant Flow Rate'); grid on;
 
-sgtitle('Reactor Sensor Data — 60-Second Window');
+% sgtitle is MATLAB-only; use axes+text for Octave compatibility
+axes('Position', [0 0 1 1], 'Visible', 'off');
+text(0.5, 0.98, 'Reactor Sensor Data — 60-Second Window', ...
+    'HorizontalAlignment', 'center', 'FontSize', 14, 'FontWeight', 'bold');
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
