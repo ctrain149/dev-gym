@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { type Task, type TaskStatus } from "@/lib/tasks";
+import { type CheckResult, type VerificationResult } from "@/lib/verifiers";
 
 interface TaskDetailProps {
   task: Task;
@@ -13,6 +14,33 @@ interface TaskDetailProps {
 export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDetailProps) {
   const [showHints, setShowHints] = useState(false);
   const [revealedHints, setRevealedHints] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  const runVerification = useCallback(async () => {
+    setVerifying(true);
+    setVerifyError(null);
+    setVerifyResult(null);
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setVerifyError(err.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      const result: VerificationResult = await res.json();
+      setVerifyResult(result);
+    } catch (e) {
+      setVerifyError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setVerifying(false);
+    }
+  }, [task.id]);
 
   const revealNextHint = () => {
     setRevealedHints((prev) => Math.min(prev + 1, task.hints.length));
@@ -115,6 +143,79 @@ export function TaskDetail({ task, status, onToggleComplete, onClose }: TaskDeta
                 {hint}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Verification */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <h3 className="text-sm font-semibold text-zinc-400 uppercase">Verification</h3>
+          <button
+            onClick={runVerification}
+            disabled={verifying}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              verifying
+                ? "bg-zinc-800 text-zinc-500 cursor-wait"
+                : "bg-blue-600 text-white hover:bg-blue-500"
+            }`}
+          >
+            {verifying ? (
+              <span className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                Checking…
+              </span>
+            ) : (
+              "Run Checks"
+            )}
+          </button>
+        </div>
+
+        {verifyError && (
+          <div className="bg-red-950/30 border border-red-900/40 rounded-lg p-3 text-sm text-red-300">
+            {verifyError}
+          </div>
+        )}
+
+        {verifyResult && (
+          <div className="space-y-2">
+            {/* Summary bar */}
+            <div
+              className={`rounded-lg p-3 text-sm font-medium ${
+                verifyResult.passed
+                  ? "bg-emerald-950/30 border border-emerald-900/40 text-emerald-300"
+                  : "bg-amber-950/30 border border-amber-900/40 text-amber-300"
+              }`}
+            >
+              {verifyResult.passed ? "✓ " : "✗ "}
+              {verifyResult.summary}
+            </div>
+
+            {/* Individual checks */}
+            <div className="bg-zinc-950 rounded-lg divide-y divide-zinc-800/50">
+              {verifyResult.checks.map((check: CheckResult, i: number) => (
+                <div key={i} className="px-3 py-2 flex items-start gap-2 text-sm">
+                  <span className={`shrink-0 mt-0.5 ${check.passed ? "text-emerald-400" : "text-red-400"}`}>
+                    {check.passed ? "✓" : "✗"}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={check.passed ? "text-zinc-300" : "text-zinc-200 font-medium"}>
+                        {check.name}
+                      </span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">
+                        {check.level}
+                      </span>
+                    </div>
+                    {!check.passed && (
+                      <p className="text-xs text-zinc-500 mt-0.5 break-all whitespace-pre-wrap">
+                        {check.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
