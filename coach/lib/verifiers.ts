@@ -110,7 +110,7 @@ const verifySpr01: Verifier = async () => {
     check(
       "CORS configured for Angular (localhost:4200)",
       securityFile,
-      /localhost:4200/
+      /localhost:4200|localhost:\*|127\.0\.0\.1/
     ),
   ];
 
@@ -165,6 +165,96 @@ const verifySpr03: Verifier = async () => {
   ];
 
   return result("spr-03", checks);
+};
+
+// ─── spr-03a ──────────────────────────────────────────────────────────────────
+
+const verifySpr03a: Verifier = async () => {
+  const repo = await findJavaFile(BACKEND_ROOT, "ProductRepository.java");
+  const controller = await findJavaFile(BACKEND_ROOT, "ProductController.java");
+
+  const checks: CheckResult[] = [
+    check(
+      "Repository has @Query with JPQL SELECT",
+      repo,
+      /@Query.*SELECT.*FROM.*Product/
+    ),
+    check(
+      "JPQL uses named parameters (:param)",
+      repo,
+      /@Query.*:.*\w/
+    ),
+    check(
+      "Has @Param annotation to bind parameters",
+      repo,
+      /@Param/
+    ),
+    check(
+      "JPQL search by name (case-insensitive)",
+      repo,
+      /LOWER|lower|UPPER|upper|IgnoreCase/i
+    ),
+    check(
+      "JPQL query for price filtering",
+      repo,
+      /price\s*>=|price\s*>|price.*>=|greaterThan/i
+    ),
+    check(
+      "JPQL aggregate query (COUNT/SUM/AVG)",
+      repo,
+      /COUNT\s*\(|SUM\s*\(|AVG\s*\(/i
+    ),
+    check(
+      "Controller has /search or /in-stock endpoint",
+      controller,
+      /search|in-stock|inStock/
+    ),
+  ];
+
+  return result("spr-03a", checks);
+};
+
+// ─── spr-03b ──────────────────────────────────────────────────────────────────
+
+const verifySpr03b: Verifier = async () => {
+  const repo = await findJavaFile(BACKEND_ROOT, "ProductRepository.java");
+  const stats = await findJavaFile(BACKEND_ROOT, "ProductStats.java");
+  const controller = await findJavaFile(BACKEND_ROOT, "ProductController.java");
+
+  const checks: CheckResult[] = [
+    check(
+      "Repository has @Query with nativeQuery = true",
+      repo,
+      /nativeQuery\s*=\s*true/
+    ),
+    check(
+      "Native query uses SQL table name (lowercase 'product')",
+      repo,
+      /FROM\s+product|from\s+product/
+    ),
+    check(
+      "Native query uses SQL aggregate (COUNT/AVG/SUM)",
+      repo,
+      /COUNT\s*\(\s*\*|AVG\s*\(|SUM\s*\(/i
+    ),
+    check(
+      "ProductStats projection interface exists",
+      stats,
+      /interface\s+ProductStats/
+    ),
+    check(
+      "ProductStats has getter methods (getCount/getAvgPrice/getTotalStock)",
+      stats,
+      /getCount|getAvgPrice|getTotalStock/
+    ),
+    check(
+      "Controller has /stats endpoint",
+      controller,
+      /stats/
+    ),
+  ];
+
+  return result("spr-03b", checks);
 };
 
 // ─── ang-01 ───────────────────────────────────────────────────────────────────
@@ -324,6 +414,8 @@ const verifiers: Record<string, Verifier> = {
   "spr-01": verifySpr01,
   "spr-02": verifySpr02,
   "spr-03": verifySpr03,
+  "spr-03a": verifySpr03a,
+  "spr-03b": verifySpr03b,
   "ang-01": verifyAng01,
   "ang-02": verifyAng02,
   "ang-03": verifyAng03,

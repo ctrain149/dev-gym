@@ -4,6 +4,8 @@ export const VERIFIABLE_TASK_IDS = new Set([
   "spr-01",
   "spr-02",
   "spr-03",
+  "spr-03a",
+  "spr-03b",
   "ang-01",
   "ang-02",
   "ang-03",
