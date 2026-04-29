@@ -1,0 +1,16 @@
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 400px;
+  padding-top: 0.5rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+
+  mat-form-field {
+    flex: 1;
+  }
+}

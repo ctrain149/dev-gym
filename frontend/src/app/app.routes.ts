@@ -4,11 +4,13 @@ export const routes: Routes = [
   {
     path: 'feed',
     loadComponent: () =>
-      import('./feed/feed.component').then((m) => m.FeedComponent),
+      import('./pages/feed/feed.component').then((m) => m.FeedComponent),
   },
   {
     path: 'products',
     loadComponent: () =>
-      import('./products/products.component').then((m) => m.ProductsComponent),
+      import('./pages/products/products.component').then(
+        (m) => m.ProductsComponent,
+      ),
   },
 ];
