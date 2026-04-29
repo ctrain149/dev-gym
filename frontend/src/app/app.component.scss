@@ -1,0 +1,17 @@
+.container-header {
+  background-color: #2d6a4f;
+  color: white;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.container-routes {
+  display: flex;
+  gap: 0.5rem;
+
+  a {
+    color: white;
+  }
+}

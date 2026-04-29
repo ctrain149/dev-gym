@@ -23,6 +23,27 @@ public class ProductController {
         return productRepository.findAll();
     }
 
+    @GetMapping("/search")
+    public List<Product> searchProducts(
+      @RequestParam(required = false) String name,
+      @RequestParam(required = false) Double minPrice
+    ) {
+        if (name != null) {
+            return productRepository.findByName(name);
+        }
+
+        if (minPrice != null) {
+            return productRepository.findByPriceAbove(minPrice);
+        }
+
+        return productRepository.findAll();
+    }
+
+    @GetMapping("/in-stock/count")
+    public Long getInStockCount() {
+        return productRepository.countInStock();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProduct(@PathVariable Long id) {
         return productRepository.findById(id)
