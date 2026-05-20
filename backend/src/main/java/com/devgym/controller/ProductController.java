@@ -57,7 +57,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProfile(@PathVariable Long id,
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id,
                                                       @Valid @RequestBody Product updated) {
         return productRepository.findById(id)
                 .map(existing -> {
@@ -75,7 +75,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProfile(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         if (productRepository.existsById(id)) {
             productRepository.deleteById(id);
             return ResponseEntity.noContent().build();

@@ -1,17 +1,18 @@
 
 package com.devgym.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Column;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 
 @Data
 @Entity
@@ -44,4 +45,46 @@ public class Product {
   private LocalDateTime createdAt;
 
   private LocalDateTime updatedAt;
+
+  // One Product can have many Reviews
+  @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  @BatchSize(size = 20)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private List<Review> reviews = new ArrayList<>();
+
+  // One Product can have many Images
+  @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  @BatchSize(size = 20)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private List<ProductImage> images = new ArrayList<>();
+
+  // One Product can be in many OrderItems
+  @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+  @BatchSize(size = 20)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private List<OrderItem> orderItems = new ArrayList<>();
+
+  // Helper methods for bidirectional relationship management
+  public void addReview(Review review) {
+    reviews.add(review);
+    review.setProduct(this);
+  }
+
+  public void removeReview(Review review) {
+    reviews.remove(review);
+    review.setProduct(null);
+  }
+
+  public void addImage(ProductImage image) {
+    images.add(image);
+    image.setProduct(this);
+  }
+
+  public void removeImage(ProductImage image) {
+    images.remove(image);
+    image.setProduct(null);
+  }
 }
